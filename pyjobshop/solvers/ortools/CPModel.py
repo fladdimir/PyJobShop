@@ -1,4 +1,10 @@
-from ortools.sat.python.cp_model import CpModel, CpSolver
+import typing
+
+from ortools.sat.python.cp_model import (
+    CpModel,
+    CpSolver,
+    CpSolverSolutionCallback,
+)
 
 from pyjobshop.ProblemData import ProblemData
 from pyjobshop.Result import Result, SolveStatus
@@ -100,6 +106,8 @@ class CPModel:
         display: bool = False,
         num_workers: int | None = None,
         initial_solution: Solution | None = None,
+        solution_callback: CpSolverSolutionCallback | None = None,
+        best_bound_callback: typing.Callable[[float], None] | None = None,
         **kwargs,
     ) -> Result:
         """
@@ -140,7 +148,11 @@ class CPModel:
         for key, value in params.items():
             setattr(solver.parameters, key, value)
 
-        status_code = solver.solve(self._model)
+        solver.best_bound_callback = best_bound_callback
+
+        status_code = solver.solve(
+            self._model, solution_callback=solution_callback
+        )
         status = solver.status_name(status_code)
 
         if status in ["OPTIMAL", "FEASIBLE"]:
