@@ -1,6 +1,7 @@
 from numpy.testing import assert_, assert_equal
-from ortools.sat.python.cp_model import CpModel
+from ortools.sat.python.cp_model import CpModel, CpSolverSolutionCallback
 
+from pyjobshop import SolveStatus
 from pyjobshop.Model import Model
 from pyjobshop.Solution import ScheduledTask, Solution
 from pyjobshop.solvers.ortools.CPModel import CPModel
@@ -108,3 +109,24 @@ def test_variables_property(small):
     assert_equal(len(variables.assign_vars), 2)
     assert_equal(len(variables.demand_vars), 2)
     assert_equal(len(variables.sequence_vars), 1)
+
+
+def test_callbacks(small):
+    cp_model = CPModel(small)
+
+    best_bounds: list[float] = []
+
+    best_solution_objective_values: list[float] = []
+
+    class TestCpSolverSolutionCallback(CpSolverSolutionCallback):
+        def on_solution_callback(self):
+            best_solution_objective_values.append(self.objective_value)
+
+    result = cp_model.solve(
+        best_bound_callback=best_bounds.append,
+        solution_callback=TestCpSolverSolutionCallback(),
+    )
+
+    assert_equal(result.status, SolveStatus.OPTIMAL)
+    assert len(best_bounds) > 0
+    assert best_bounds == best_solution_objective_values
